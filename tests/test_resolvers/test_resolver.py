@@ -25,16 +25,13 @@ class TestResolver(object):
 
     def setup_method(self, test_method):
         self.mock_resolver = MockResolver(
-            environment_config=sentinel.environment_config,
-            stack_config=sentinel.stack_config,
+            config=sentinel.config,
             connection_manager=sentinel.connection_manager,
             argument=sentinel.argument
         )
 
     def test_init(self):
-        assert self.mock_resolver.environment_config == \
-            sentinel.environment_config
-        assert self.mock_resolver.stack_config == sentinel.stack_config
+        assert self.mock_resolver.config == sentinel.config
         assert self.mock_resolver.connection_manager == \
             sentinel.connection_manager
         assert self.mock_resolver.argument == sentinel.argument

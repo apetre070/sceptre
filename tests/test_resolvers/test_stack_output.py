@@ -17,14 +17,15 @@ class TestStackOutputResolver(object):
         "sceptre.resolvers.stack_output.StackOutput._get_output_value"
     )
     def test_resolve(self, mock_get_output_value):
-        mock_environment_config = MagicMock(spec=Config)
-        mock_stack_config = MagicMock(spec=Config)
-        mock_environment_config.__getitem__.return_value = "project-code"
-        mock_stack_config.__getitem__.return_value = []
+        mock_config = MagicMock(spec=Config)
+        d = {
+            "project_code": "project-code",
+            "dependencies": []
+        }
+        mock_config.__getitem__.side_effect = d.__getitem__
 
         stack_output_resolver = StackOutput(
-            environment_config=mock_environment_config,
-            stack_config=mock_stack_config,
+            config=mock_config,
             connection_manager=sentinel.connection_manager,
             argument="account/dev/vpc::VpcId"
         )
@@ -43,15 +44,16 @@ class TestStackOutputResolver(object):
     def test_resolve_with_implicit_stack_reference(
         self, mock_get_output_value
     ):
-        mock_environment_config = MagicMock(spec=Config)
-        mock_stack_config = MagicMock(spec=Config)
-        mock_environment_config.__getitem__.return_value = "project-code"
-        mock_stack_config.environment_path = "account/dev"
-        mock_stack_config.__getitem__.return_value = []
+        mock_config = MagicMock(spec=Config)
+        mock_config.environment_path = "account/dev"
+        d = {
+            "project_code": "project-code",
+            "dependencies": []
+        }
+        mock_config.__getitem__.side_effect = d.__getitem__
 
         stack_output_resolver = StackOutput(
-            environment_config=mock_environment_config,
-            stack_config=mock_stack_config,
+            config=mock_config,
             connection_manager=sentinel.connection_manager,
             argument="vpc::VpcId"
         )
@@ -69,8 +71,7 @@ class TestStackOutputExternalResolver(object):
 
     def setup_method(self, test_method):
         self.stack_output_resolver = StackOutputExternal(
-            environment_config=sentinel.environment_config,
-            stack_config=sentinel.config,
+            config=sentinel.config,
             connection_manager=sentinel.connection_manager,
             argument=None
         )
@@ -79,10 +80,10 @@ class TestStackOutputExternalResolver(object):
         "sceptre.resolvers.stack_output.StackOutputExternal._get_output_value"
     )
     def test_resolve(self, mock_get_output_value):
-        mock_environment_config = MagicMock(spec=Config)
-        mock_environment_config.__getitem__.return_value = "project-code"
-        mock_environment_config.environment_path = "account/dev"
-        self.stack_output_resolver.environment_config = mock_environment_config
+        mock_config = MagicMock(spec=Config)
+        mock_config.__getitem__.return_value = "project-code"
+        mock_config.environment_path = "account/dev"
+        self.stack_output_resolver.config = mock_config
         self.stack_output_resolver.argument = "vpc::VpcId"
 
         mock_get_output_value.return_value = "output_value"
@@ -112,8 +113,7 @@ class TestStackOutputBaseResolver(object):
 
     def setup_method(self, test_method):
         self.mock_base_stack_output_resolver = MockStackOutputBase(
-            environment_config=sentinel.environment_config,
-            stack_config=sentinel.config,
+            config=sentinel.config,
             connection_manager=sentinel.connection_manager,
             argument=None
         )

@@ -12,24 +12,18 @@ class Hook(object):
 
     :param argument: The argument in which the task can use.
     :type argument: str
-    :param environment_config: The environment_config from config.yaml files.
-    :type environment_config: sceptre.config.Config
-    :param stack_config: The stack config of the stack that this parameter is \
-    associated with.
-    :type stack_config: sceptre.config.Config
+    :param config: The config of the stack that this parameter is associated \
+     with.
+    :type config: sceptre.config.Config
     :param connection_manager: A connection_manager.
     :type connection_manager: sceptre.connection_manager.ConnectionManager
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(
-            self, argument=None, connection_manager=None,
-            environment_config=None, stack_config=None):
+    def __init__(self, argument=None, config=None):
         self.logger = logging.getLogger(__name__)
         self.argument = argument
-        self.connection_manager = connection_manager
-        self.environment_config = environment_config
-        self.stack_config = stack_config
+        self.config = config
 
     @abc.abstractmethod
     def run(self):

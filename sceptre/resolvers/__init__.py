@@ -10,10 +10,8 @@ class Resolver(object):
     manager are supplied to the class, as they may be of use to inheriting
     classes.
 
-    :param environment_config: The environment_config from config.yaml files.
-    :type environment_config: sceptre.config.Config
-    :param stack_config: The stack config.
-    :type stack_config: sceptre.config.Config
+    :param config: The config.
+    :type config: sceptre.config.Config
     :param connection_manager: A connection manager.
     :type connection_manager: sceptre.connection_manager.ConnectionManager
     :param argument: Arguments to pass to the resolver.
@@ -22,15 +20,10 @@ class Resolver(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(
-        self, argument=None, connection_manager=None,
-        environment_config=None, stack_config=None
-    ):
+    def __init__(self, argument=None, config=None):
         self.logger = logging.getLogger(__name__)
-        self.environment_config = environment_config
-        self.stack_config = stack_config
-        self.connection_manager = connection_manager
         self.argument = argument
+        self.config = config
 
     @abc.abstractmethod
     def resolve(self):
@@ -65,11 +58,9 @@ class ResolvableProperty(object):
         :return: The attribute stored with the suffix ``name`` in the instance.
         :rtype: dict or list
         """
-        if not hasattr(instance, self.name) \
-                or getattr(instance, self.name) is None:
-            value = instance.config.get(self.name[1:], {})
-            setattr(instance, self.name, value)
-        return self.resolve_values(getattr(instance, self.name))
+
+        if hasattr(instance, self.name):
+            return self.resolve_values(getattr(instance, self.name))
 
     def __set__(self, instance, value):
         setattr(instance, self.name, value)

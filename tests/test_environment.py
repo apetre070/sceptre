@@ -2,7 +2,7 @@
 
 import os
 import pytest
-from mock import patch, sentinel, Mock, PropertyMock
+from mock import patch, sentinel, Mock, MagicMock, PropertyMock
 
 from botocore.exceptions import ClientError
 
@@ -10,6 +10,7 @@ from sceptre.exceptions import CircularDependenciesError
 from sceptre.exceptions import StackDoesNotExistError
 from sceptre.exceptions import InvalidEnvironmentPathError
 
+from sceptre.config import Config
 from sceptre.environment import Environment
 from sceptre.stack_status import StackStatus
 
@@ -445,24 +446,35 @@ class TestEnvironment(object):
             "account/environment/region/security_groups"
         ])
 
+    @patch("sceptre.environment.Config")
     @patch("sceptre.environment.Stack")
     @patch("sceptre.environment.Environment._get_available_stacks")
     @patch("sceptre.environment.ConnectionManager")
     @patch("sceptre.environment.Environment._get_config")
     def test_load_stacks(
             self, mock_get_config, mock_ConnectionManager,
-            mock_get_available_stacks, mock_Stack
+            mock_get_available_stacks, mock_Stack, mock_Config
     ):
-        mock_config = {
+        mock_environment_config = {
             "region": sentinel.region,
             "iam_role": sentinel.iam_role
         }
-        mock_get_config.return_value = mock_config
+        mock_get_config.return_value = mock_environment_config
+        mock_config = MagicMock(spec=Config)
+        mock_config["template_path"] = sentinel.template_path
+        # mock_config.read.return_value = None
+        # d = {"template_path": sentinel.template_path}
+        # mock_config.__getitem__.side_effect = d.__getitem__
+        mock_Config.with_yaml_constructors.return_value = mock_config
+
         mock_ConnectionManager.return_value = sentinel.connection_manager
         mock_get_available_stacks.return_value = ["stack_name"]
         mock_Stack.return_value = sentinel.stack
 
         response = self.environment._load_stacks()
+
+        # mock_config["region"] = sentinel.region
+        mock_config["iam_role"] = sentinel.iam_role
 
         # Check ConnectionManager() is called with correct arguments
         mock_ConnectionManager.assert_called_once_with(
@@ -473,7 +485,7 @@ class TestEnvironment(object):
         # Check Stack() is called with correct arguments
         mock_Stack.assert_called_once_with(
             name="stack_name",
-            environment_config=mock_config,
+            config=mock_config,
             connection_manager=sentinel.connection_manager
         )
         # Check _load_stacks() returns list of stacks

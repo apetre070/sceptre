@@ -14,14 +14,11 @@ class TestASGScalingProcesses(object):
         self.mock_asg_scaling_processes = ASGScalingProcesses()
 
     def test_get_stack_resources_sends_correct_request(self):
-        mock_environment_config = MagicMock(spec=Config)
-        mock_environment_config.__getitem__.return_value = "project_code"
-        mock_environment_config.environment_path = "path"
-        self.mock_asg_scaling_processes.environment_config =\
-            mock_environment_config
-        mock_stack_config = MagicMock(spec=Config)
-        mock_stack_config.name = "stack"
-        self.mock_asg_scaling_processes.stack_config = mock_stack_config
+        mock_config = MagicMock(spec=Config)
+        mock_config.__getitem__.return_value = "project_code"
+        mock_config.environment_path = "path"
+        mock_config.name = "stack"
+        self.mock_asg_scaling_processes.config = mock_config
         mock_connection_manager = Mock()
         mock_connection_manager.call.return_value = {
             "StackResources": [

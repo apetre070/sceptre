@@ -9,8 +9,7 @@ class TestEnvironmentVariableResolver(object):
 
     def setup_method(self, test_method):
         self.environment_variable_resolver = EnvironmentVariable(
-            environment_config=sentinel.environment_config,
-            stack_config=sentinel.config,
+            config=sentinel.config,
             connection_manager=sentinel.connection_manager,
             argument=None
         )

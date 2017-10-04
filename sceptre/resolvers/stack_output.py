@@ -4,6 +4,7 @@ import abc
 import logging
 from botocore.exceptions import ClientError
 
+from sceptre.connection_manager import ConnectionManager
 from sceptre.resolvers import Resolver
 from sceptre.exceptions import DependencyStackMissingOutputError
 from sceptre.exceptions import StackDoesNotExistError
@@ -56,8 +57,11 @@ class StackOutputBase(Resolver):
         self.logger.debug("Collecting outputs from '{0}'...".format(
             stack_name
         ))
+        connection_manager = ConnectionManager(
+            self.config["region"], self.config.get("iam_role")
+        )
         try:
-            response = self.connection_manager.call(
+            response = connection_manager.call(
                 service="cloudformation",
                 command="describe_stacks",
                 kwargs={"StackName": stack_name}
@@ -95,12 +99,13 @@ class StackOutput(StackOutputBase):
         self.dependency_stack_name, self.output_key = self.argument.split("::")
         if "/" not in self.dependency_stack_name:
             self.dependency_stack_name = "/".join([
-                self.stack_config.environment_path,
+                self.config["environment_path"],
                 self.dependency_stack_name
             ])
-        self.stack_config["dependencies"].append(
-            self.dependency_stack_name
-        )
+
+        if "dependencies" not in self.config:
+            self.config["dependencies"] = []
+        self.config["dependencies"].append(self.dependency_stack_name)
 
     def resolve(self):
         """
@@ -112,7 +117,7 @@ class StackOutput(StackOutputBase):
         self.logger.debug("Resolving stack output: {0}".format(self.argument))
 
         stack_name = "-".join([
-            self.environment_config["project_code"],
+            self.config["project_code"],
             self.dependency_stack_name.replace("/", "-")
         ])
 

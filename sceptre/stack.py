@@ -17,15 +17,13 @@ import threading
 from dateutil.tz import tzutc
 import botocore
 
-from .config import Config
+from .connection_manager import ConnectionManager
 from .resolvers import ResolvableProperty
 from .stack_status import StackStatus
 from .stack_status import StackChangeSetStatus
 from .template import Template
 
 from .hooks import add_stack_hooks
-from .helpers import get_name_tuple
-from .helpers import get_external_stack_name
 
 from .exceptions import CannotUpdateFailedStackError
 from .exceptions import UnknownStackStatusError
@@ -43,8 +41,8 @@ class Stack(object):
 
     :param name: The name of the stack.
     :type project: str
-    :param environment_config: The stack's environment's config.
-    :type environment_config: sceptre.config.Config
+    :param config: The stack's config.
+    :type config: sceptre.config.Config
     :param connection_manager: A connection manager, used to make Boto3 calls.
     :type connection_manager: sceptre.connection_manager.ConnectionManager
     """
@@ -53,95 +51,37 @@ class Stack(object):
     parameters = ResolvableProperty("parameters")
     sceptre_user_data = ResolvableProperty("sceptre_user_data")
 
-    def __init__(self, name, environment_config, connection_manager):
+    def __init__(
+        self, name, external_name, region, template_path, iam_role=None,
+        hooks={}, role_arn=None, tags={}, dependencies=[], protected=False,
+        sceptre_user_data={}, s3_details=None, parameters={}
+    ):
         self.logger = logging.getLogger(__name__)
 
         self.name = name
-        self.environment_config = environment_config
+        self.external_name = external_name
+        self.region = region
+        self.tags = tags
+        self.role_arn = role_arn
+        self.iam_role = iam_role
+        self.protected = protected
+        self.dependencies = dependencies
+        self.hooks = hooks
+        self.connection_manager = ConnectionManager(
+            self.region, self.iam_role
+        )
 
-        self._environment_path = self.environment_config.environment_path
-        self.project = self.environment_config["project_code"]
-        self.region = self.environment_config["region"]
+        self.sceptre_user_data = sceptre_user_data
+        self.parameters = parameters
 
-        self.connection_manager = connection_manager
-
-        self._config = None
+        self.template_path = template_path
+        self.s3_details = s3_details
         self._template = None
-        self._hooks = None
-        self._dependencies = None
-        self._external_name = None
 
     def __repr__(self):
         return (
-            "sceptre.stack.Stack(stack_name='{0}', environment_config={1}, "
-            "connection_manager={2})".format(
-                self.name, self.environment_config, self.connection_manager
-            )
+            "sceptre.stack.Stack(stack_name='{0}')".format(self.name)
         )
-
-    @property
-    def config(self):
-        """
-        Return's the stack's config.
-
-        :returns: The stack's config.
-        :rtype: sceptre.config.Config
-        """
-        if self._config is None:
-            with self._config_lock:
-                self._config = Config.with_yaml_constructors(
-                    sceptre_dir=self.environment_config.sceptre_dir,
-                    environment_path=self.environment_config.environment_path,
-                    base_file_name=get_name_tuple(self.name)[-1],
-                    environment_config=self.environment_config,
-                    connection_manager=self.connection_manager
-                )
-                self._config.read(
-                    self.environment_config.get("user_variables")
-                )
-
-        return self._config
-
-    @property
-    def dependencies(self):
-        """
-        Returns a list of stacks that this stack depends on.
-
-        A list of stacks that need to exist in AWS to allow the creation of
-        this stack.
-
-        :returns: The dependent stacks.
-        :rtype: list
-        """
-        if self._dependencies is None:
-            self.logger.debug(
-                "%s - Loading dependencies...", self.name
-            )
-            self._dependencies = set(
-                self.config.get("dependencies", [])
-            )
-            self.logger.debug(
-                "%s - Dependencies: %s", self.name, self._dependencies
-            )
-        return self._dependencies
-
-    @property
-    def hooks(self):
-        """
-        Returns the stack's hooks.
-
-        Hooks are arbitraty pieces of code which are run before/after a stack
-        create/update/delete.
-
-        :returns: The stack's hooks.
-        :rtype: dict
-        """
-        if self._hooks is None:
-            self.logger.debug("%s - Loading hooks...", self._hooks)
-            self._hooks = self.config.get("hooks", {})
-
-        self.logger.debug("%s - Hooks: %s", self.name, self._hooks)
-        return self._hooks
 
     @property
     def template(self):
@@ -152,14 +92,18 @@ class Stack(object):
         :rtype: str
         """
         if self._template is None:
+<<<<<<< HEAD
             abs_template_path = os.path.join(
                 self.environment_config.sceptre_dir,
                 self.config["template_path"],
             )
 
+=======
+>>>>>>> 278338c... Refactor stack class to accept a single config
             self._template = Template(
-                path=abs_template_path,
+                path=self.template_path,
                 sceptre_user_data=self.sceptre_user_data,
+<<<<<<< HEAD
                 connection_manager=self.connection_manager,
                 s3_props=self._get_s3_props()
             )
@@ -201,6 +145,13 @@ class Stack(object):
             )
         return self._external_name
 
+=======
+                s3_details=self.s3_details,
+                connection_manager=self.connection_manager
+            )
+        return self._template
+
+>>>>>>> 278338c... Refactor stack class to accept a single config
     @add_stack_hooks
     def create(self):
         """
@@ -217,7 +168,7 @@ class Stack(object):
             "Capabilities": ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
             "Tags": [
                 {"Key": str(k), "Value": str(v)}
-                for k, v in self.config.get("stack_tags", {}).items()
+                for k, v in self.tags.items()
             ]
         }
         create_stack_kwargs.update(self.template.get_boto_call_parameter())
@@ -251,7 +202,7 @@ class Stack(object):
             "Capabilities": ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
             "Tags": [
                 {"Key": str(k), "Value": str(v)}
-                for k, v in self.config.get("stack_tags", {}).items()
+                for k, v in self.tags.items()
             ]
         }
         update_stack_kwargs.update(self.template.get_boto_call_parameter())
@@ -522,7 +473,7 @@ class Stack(object):
             "ChangeSetName": change_set_name,
             "Tags": [
                 {"Key": str(k), "Value": str(v)}
-                for k, v in self.config.get("stack_tags", {}).items()
+                for k, v in self.tags.items()
             ]
         }
         create_change_set_kwargs.update(
@@ -677,9 +628,9 @@ class Stack(object):
         :returns: the a role arn
         :rtype: dict
         """
-        if "role_arn" in self.config:
+        if self.role_arn:
             return {
-                "RoleARN": self.config["role_arn"]
+                "RoleARN": self.role_arn
             }
         else:
             return {}
@@ -691,7 +642,7 @@ class Stack(object):
 
         :raises: sceptre.exceptions.ProtectedStackError
         """
-        if self.config.get("protect", False):
+        if self.protected:
             raise ProtectedStackError(
                 "Cannot perform action on '{0}': stack protection is "
                 "currently enabled".format(self.name)

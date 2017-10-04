@@ -67,9 +67,9 @@ class ASGScalingProcesses(Hook):
         :return: list
         """
         full_stack_name = "-".join([
-            self.environment_config["project_code"],
-            self.environment_config.environment_path,
-            self.stack_config.name
+            self.config["project_code"],
+            self.config.environment_path,
+            self.config.name
         ]).replace("/", "-")
         response = self.connection_manager.call(
             service="cloudformation",

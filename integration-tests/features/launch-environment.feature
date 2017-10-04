@@ -33,6 +33,7 @@ Feature: Launch environment
     When the user launches environment "2"
     Then all the stacks in environment "2" are in "UPDATE_COMPLETE"
 
+  @wip
   Scenario: launch an environment with nested environments that do not exist
     Given environment "5" does not exist
     When the user launches environment "5"

@@ -43,7 +43,7 @@ class TestConfig(object):
             sceptre_dir="sceptre_dir",
             environment_path="environment_path",
             base_file_name="config",
-            environment_config=sentinel.environment_config,
+            environment_config={"project_code": sentinel.project_code},
             connection_manager=sentinel.connection_manager
         )
         assert config.sceptre_dir == "sceptre_dir"
@@ -75,7 +75,6 @@ class TestConfig(object):
         self.config.read()
         assert self.config == {
             'parameters': [{'param1': 'val1'}],
-            'dependencies': [],
             'template_path': 'path/to/template'
         }
 
@@ -89,9 +88,7 @@ class TestConfig(object):
         self.config.name = "subnets"
 
         self.config.read()
-        assert self.config == {
-            'dependencies': []
-        }
+        assert self.config == {}
 
     def test_read_cascades_config(self):
         self.config.sceptre_dir = os.path.join(
@@ -107,8 +104,7 @@ class TestConfig(object):
             "template_bucket_name": "environment_template_bucket_name",
             "project_code": "account_project_code",
             "iam_role": "account_iam_role",
-            "require_version": ">=0a",
-            'dependencies': []
+            "require_version": ">=0a"
         }
 
     def test_read_with_templated_config_file(self):
@@ -129,8 +125,7 @@ class TestConfig(object):
                 "param3": "account",
                 "param4": "environment",
                 "param5": "region"
-            },
-            'dependencies': []
+            }
         }
 
     def test_check_env_path_exists_with_valid_dir(self):
